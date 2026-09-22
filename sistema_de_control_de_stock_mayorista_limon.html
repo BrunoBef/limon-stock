@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Stock - Mayorista LIMON</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .active-tab {
+            border-bottom: 3px solid #1f2937;
+            color: #1f2937;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 pb-12">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <i data-lucide="package-search" class="w-8 h-8 text-yellow-400"></i>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">AUTOSERVICIO MAYORISTA LIMON</h1>
+                    <p class="text-xs text-gray-400">Sistema Integrado de Control de Stock y Pedidos</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 text-sm bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
+                <span>Base de Datos Activa</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 mt-6">
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-gray-300 mb-6 bg-white rounded-t-lg shadow-sm px-4">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-3 px-6 text-gray-600 hover:text-gray-900 flex items-center gap-2 active-tab">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span>Panel de Control (Stock)</span>
+            </button>
+            <button onclick="switchTab('bot')" id="tab-bot" class="py-3 px-6 text-gray-600 hover:text-gray-900 flex items-center gap-2">
+                <i data-lucide="bot" class="w-5 h-5"></i>
+                <span>Bot de Comandos (Celular)</span>
+            </button>
+            <button onclick="switchTab('cloud')" id="tab-cloud" class="py-3 px-6 text-gray-600 hover:text-gray-900 flex items-center gap-2">
+                <i data-lucide="cloud-sync" class="w-5 h-5"></i>
+                <span>Sincronización & Exportar</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: PANEL DE CONTROL -->
+        <div id="view-dashboard" class="space-y-6">
+
+            <!-- Summary KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Total Bultos en Stock</p>
+                        <p id="kpi-total-bultos" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                    </div>
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                        <i data-lucide="boxes" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Valoración del Stock</p>
+                        <p id="kpi-valor-stock" class="text-2xl font-bold text-green-700 mt-1">$0</p>
+                    </div>
+                    <div class="p-3 bg-green-50 text-green-600 rounded-lg">
+                        <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Total Productos Distinctos</p>
+                        <p id="kpi-total-items" class="text-2xl font-bold text-slate-800 mt-1">0</p>
+                    </div>
+                    <div class="p-3 bg-purple-50 text-purple-600 rounded-lg">
+                        <i data-lucide="list-checks" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Remitos Procesados</p>
+                        <p id="kpi-total-remitos" class="text-2xl font-bold text-slate-800 mt-1">3</p>
+                    </div>
+                    <div class="p-3 bg-orange-50 text-orange-600 rounded-lg">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table & Search Controls -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 flex flex-col sm:flex-row gap-4 justify-between items-center bg-gray-50">
+                    <div class="relative w-full sm:w-80">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="search-input" onkeyup="renderTable()" placeholder="Buscar producto o remito..." class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <button onclick="toggleModal(true)" class="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 shadow">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Ingresar Producto Nuevo</span>
+                    </button>
+                </div>
+
+                <!-- Stock Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead class="bg-slate-800 text-white text-xs uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3 text-center">ID</th>
+                                <th class="p-3">Remito</th>
+                                <th class="p-3">Fecha</th>
+                                <th class="p-3">Descripción del Producto</th>
+                                <th class="p-3 text-right">Cant. Bultos</th>
+                                <th class="p-3 text-right">Precio Unitario</th>
+                                <th class="p-3 text-right">Subtotal</th>
+                                <th class="p-3">Lote / Vencimiento</th>
+                                <th class="p-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-table-body" class="divide-y divide-gray-200 bg-white">
+                            <!-- Items auto-populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: BOT DE COMANDOS PARA CELULAR -->
+        <div id="view-bot" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Instruction Card -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 space-y-4">
+                    <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                        <i data-lucide="terminal" class="w-5 h-5 text-blue-600"></i>
+                        Comandos del Bot (Celular)
+                    </h3>
+                    <p class="text-xs text-gray-600">Podés usar este simulador para probar cómo responderá tu bot de WhatsApp al enviar mensajes rápidos:</p>
+                    
+                    <div class="space-y-3 text-xs">
+                        <div class="p-3 bg-gray-50 border rounded-lg">
+                            <p class="font-bold text-blue-700">SUMAR [ID] [CANTIDAD]</p>
+                            <p class="text-gray-500 mt-0.5">Agrega bultos al stock. Ejemplo: <code class="bg-gray-200 px-1 rounded">SUMAR 1 10</code></p>
+                        </div>
+                        <div class="p-3 bg-gray-50 border rounded-lg">
+                            <p class="font-bold text-red-700">RESTAR [ID] [CANTIDAD]</p>
+                            <p class="text-gray-500 mt-0.5">Descuenta bultos por salida. Ejemplo: <code class="bg-gray-200 px-1 rounded">RESTAR 1 5</code></p>
+                        </div>
+                        <div class="p-3 bg-gray-50 border rounded-lg">
+                            <p class="font-bold text-purple-700">STOCK [BUSQUEDA]</p>
+                            <p class="text-gray-500 mt-0.5">Consulta cantidades disponibles. Ejemplo: <code class="bg-gray-200 px-1 rounded">STOCK Coca</code></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulated WhatsApp Chat Widget -->
+                <div class="lg:col-span-2 bg-slate-900 rounded-xl shadow-md border border-slate-800 flex flex-col h-[500px]">
+                    <div class="p-4 bg-slate-800 text-white rounded-t-xl flex items-center justify-between border-b border-slate-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-slate-900 font-bold">
+                                <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-sm">Bot Stock LIMON</p>
+                                <p class="text-xs text-green-400">En línea</p>
+                            </div>
+                        </div>
+                        <button onclick="clearChat()" class="text-xs text-gray-400 hover:text-white">Limpiar Chat</button>
+                    </div>
+
+                    <!-- Chat Messages Area -->
+                    <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-950 font-mono text-xs">
+                        <div class="bg-slate-800 text-gray-300 p-3 rounded-lg max-w-md">
+                            Hola! Soy tu asistente de stock de Mayorista LIMON. Escribí <b class="text-yellow-400">STOCK</b>, <b class="text-green-400">SUMAR [ID] [CANT]</b> o <b class="text-red-400">RESTAR [ID] [CANT]</b> para comenzar.
+                        </div>
+                    </div>
+
+                    <!-- Input Bar -->
+                    <form onsubmit="handleBotSubmit(event)" class="p-3 bg-slate-800 rounded-b-xl flex gap-2 border-t border-slate-700">
+                        <input type="text" id="bot-input" placeholder="Escribí un comando (ej: STOCK Coca o SUMAR 1 10)..." class="flex-1 bg-slate-900 border border-slate-700 text-white text-xs px-3 py-2.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-1">
+                            <span>Enviar</span>
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: SINCRONIZACION Y EXPORTAR -->
+        <div id="view-cloud" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 max-w-2xl mx-auto space-y-6">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="cloud-cog" class="w-5 h-5 text-blue-600"></i>
+                        Sincronización y Respaldo
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-1">Los datos actuales están guardados localmente en tu navegador. Podés respaldar o exportar la información cuando quieras.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="p-4 border border-gray-200 rounded-lg flex items-center justify-between bg-gray-50">
+                        <div>
+                            <p class="font-semibold text-sm text-gray-800">Exportar a Formato CSV / Excel</p>
+                            <p class="text-xs text-gray-500">Descargá toda la lista de stock actual para abrirla en Excel o Google Sheets.</p>
+                        </div>
+                        <button onclick="exportToCSV()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            <span>Descargar CSV</span>
+                        </button>
+                    </div>
+
+                    <div class="p-4 border border-red-200 rounded-lg flex items-center justify-between bg-red-50">
+                        <div>
+                            <p class="font-semibold text-sm text-red-800">Restablecer Datos Iniciales</p>
+                            <p class="text-xs text-red-600">Vuelve a cargar los 41 ítems originales de los remitos enviados.</p>
+                        </div>
+                        <button onclick="resetData()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                            <span>Restablecer</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal: Nuevo Producto / Edición -->
+    <div id="modal-product" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm">Agregar Producto al Stock</h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleProductSubmit(event)" class="p-6 space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">N° Remito</label>
+                    <input type="text" id="form-remito" required placeholder="Ej: 0001-00059506" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Fecha Emisión</label>
+                    <input type="text" id="form-fecha" required placeholder="DD/MM/AAAA" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Descripción del Producto</label>
+                    <input type="text" id="form-producto" required placeholder="Ej: FANTA X 2.25L X 8U" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Cantidad (Bultos)</label>
+                        <input type="number" id="form-cantidad" required min="1" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Precio Unitario ($)</label>
+                        <input type="number" id="form-precio" step="0.01" required min="0" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">Lote / Vencimiento</label>
+                    <input type="text" id="form-lote" placeholder="Ej: Cant: 20 Ven: 01-12-26" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="toggleModal(false)" class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // Full initial dataset (41 items from remitos 0001-00059506, 0001-00059478, and 0001-00059482)
+        const initialProducts = [
+            // Remito 0001-00059506
+            { id: 1, remito: "0001-00059506", fecha: "21/09/2026", producto: "COCA COLA X 2.25L X 8U - Coca Cola", cantidad: 120, precio: 31300.00, lote: "Cant: 120 Ven: 09-11-26" },
+            
+            // Remito 0001-00059478
+            { id: 2, remito: "0001-00059478", fecha: "20/09/2026", producto: "AMSTEL LATA X 473CC X 24U - CCU", cantidad: 20, precio: 33500.00, lote: "Cant: 20 Ven: 01-02-27" },
+            { id: 3, remito: "0001-00059478", fecha: "20/09/2026", producto: "ANDES IPA X 473CC X 24U - Quilmes", cantidad: 20, precio: 46000.00, lote: "Cant: 20 Ven: 18-02-27" },
+            { id: 4, remito: "0001-00059478", fecha: "20/09/2026", producto: "ANDES RUBIA X 473CC X 24U - Quilmes", cantidad: 20, precio: 46000.00, lote: "Cant: 18 Ven: 10-10-26 / Cant: 2 Ven: 27-10-26" },
+            { id: 5, remito: "0001-00059478", fecha: "20/09/2026", producto: "BRAHMA LATON X 710 X 16U - Quilmes", cantidad: 48, precio: 41000.00, lote: "Cant: 48 Ven: 21-03-27" },
+            { id: 6, remito: "0001-00059478", fecha: "20/09/2026", producto: "CAJON COCA COLA X 1L X 12U RETORNABLE - Coca Cola", cantidad: 20, precio: 28500.00, lote: "Cant: 20 Ven: 01-12-26" },
+            { id: 7, remito: "0001-00059478", fecha: "20/09/2026", producto: "COCA COLA X 2.25L X 8U - Coca Cola", cantidad: 60, precio: 31300.00, lote: "Cant: 60 Ven: 09-11-26" },
+            { id: 8, remito: "0001-00059478", fecha: "20/09/2026", producto: "COCA ZERO X 500CC X 12U - Coca Cola", cantidad: 42, precio: 17000.00, lote: "Cant: 42 Ven: 09-12-26" },
+            { id: 9, remito: "0001-00059478", fecha: "20/09/2026", producto: "CUNNINGTON LIMA X 2250CC X 6U - CUNNINGTON", cantidad: 20, precio: 9500.00, lote: "Cant: 20 Ven: 24-02-27" },
+            { id: 10, remito: "0001-00059478", fecha: "20/09/2026", producto: "CUNNINGTON POMELO X 2250CC X 6U - CUNNINGTON", cantidad: 20, precio: 9500.00, lote: "Cant: 20 Ven: 10-02-27" },
+            { id: 11, remito: "0001-00059478", fecha: "20/09/2026", producto: "FANTA X 2.25L X 8U - Coca Cola", cantidad: 15, precio: 31300.00, lote: "Cant: 8 Ven: 10-10-26 / Cant: 7 Ven: 26-12-26" },
+            { id: 12, remito: "0001-00059478", fecha: "20/09/2026", producto: "IGUANA CAJON X 12U RETORNABLE - Quilmes", cantidad: 10, precio: 29000.00, lote: "Cant: 10 Ven: 07-01-27" },
+            { id: 13, remito: "0001-00059478", fecha: "20/09/2026", producto: "ISENBECK LATA X 473CC X 24U - CCU", cantidad: 40, precio: 29000.00, lote: "Cant: 40 Ven: 13-05-27" },
+            { id: 14, remito: "0001-00059478", fecha: "20/09/2026", producto: "LATA COCA X 354CC X 6U - Coca Cola", cantidad: 445, precio: 7600.00, lote: "Cant: 275 Ven: 25-02-27 / Cant: 170 Ven: 18-03-27" },
+            { id: 15, remito: "0001-00059478", fecha: "20/09/2026", producto: "LATA SPRITE X 354CC X 6U - Coca Cola", cantidad: 45, precio: 7600.00, lote: "Cant: 45 Ven: 14-02-27" },
+            { id: 16, remito: "0001-00059478", fecha: "20/09/2026", producto: "LATON HEINEKEN X 710CC X 24U - CCU", cantidad: 24, precio: 81000.00, lote: "Cant: 24 Ven: 16-05-27" },
+            { id: 17, remito: "0001-00059478", fecha: "20/09/2026", producto: "LATON SCHNEIDER X 710CC X 24U - CCU", cantidad: 56, precio: 51000.00, lote: "Cant: 56 Ven: 19-05-27" },
+            { id: 18, remito: "0001-00059478", fecha: "20/09/2026", producto: "MILLER CAJON X 12U RETORNABLE - Quilmes", cantidad: 20, precio: 43000.00, lote: "Cant: 20 Ven: 24-01-27" },
+            { id: 19, remito: "0001-00059478", fecha: "20/09/2026", producto: "MILLER LATA X 473CC X 24U - CCU", cantidad: 20, precio: 42000.00, lote: "Cant: 20 Ven: 19-01-27" },
+            { id: 20, remito: "0001-00059478", fecha: "20/09/2026", producto: "MILLER LATON X 710CC X 24U - CCU", cantidad: 16, precio: 71000.00, lote: "Cant: 16 Ven: 30-04-27" },
+            { id: 21, remito: "0001-00059478", fecha: "20/09/2026", producto: "MONSTER MANGO LOCO X 500CC X 6U - Coca Cola", cantidad: 90, precio: 14200.00, lote: "Cant: 90 Ven: 14-08-28" },
+            { id: 22, remito: "0001-00059478", fecha: "20/09/2026", producto: "MONSTER NEGRO X 500CC X 6U - Coca Cola", cantidad: 90, precio: 14200.00, lote: "Cant: 90 Ven: 13-07-28" },
+            { id: 23, remito: "0001-00059478", fecha: "20/09/2026", producto: "MONSTER \"THE DOCTOR\" X 473CC X 6U - Coca Cola", cantidad: 20, precio: 14200.00, lote: "Cant: 20 Ven: 24-02-28" },
+            { id: 24, remito: "0001-00059478", fecha: "20/09/2026", producto: "PEPSI X 2LX 8U - Quilmes", cantidad: 60, precio: 21800.00, lote: "Cant: 60 Ven: 04-11-26" },
+            { id: 25, remito: "0001-00059478", fecha: "20/09/2026", producto: "PEPSI LATA X 354CC X 6U - Quilmes", cantidad: 80, precio: 6100.00, lote: "Cant: 80 Ven: 22-01-27" },
+            { id: 26, remito: "0001-00059478", fecha: "20/09/2026", producto: "POWERADE ROJO X 995CC X 6U - Coca Cola", cantidad: 30, precio: 11200.00, lote: "Cant: 30 Ven: 25-10-26" },
+            { id: 27, remito: "0001-00059478", fecha: "20/09/2026", producto: "QUILMES CAJON X 12U RETORNABLE - Quilmes", cantidad: 10, precio: 38000.00, lote: "Cant: 10 Ven: 14-03-27" },
+            { id: 28, remito: "0001-00059478", fecha: "20/09/2026", producto: "SEVEN X 500CC X 12U - Quilmes", cantidad: 24, precio: 12000.00, lote: "Cant: 18 Ven: 14-10-26 / Cant: 6 Ven: 29-10-26" },
+            { id: 29, remito: "0001-00059478", fecha: "20/09/2026", producto: "SEVEN UP X 354CC X 6U - Quilmes", cantidad: 80, precio: 6100.00, lote: "Cant: 80 Ven: 03-01-27" },
+            { id: 30, remito: "0001-00059478", fecha: "20/09/2026", producto: "SPRITE X 500CC X 12U - Coca Cola", cantidad: 42, precio: 17000.00, lote: "Cant: 42 Ven: 06-12-26" },
+            { id: 31, remito: "0001-00059478", fecha: "20/09/2026", producto: "VILLAVICENCIO CON GAS X 500CC X 12U - VILLA DEL SUR", cantidad: 22, precio: 9800.00, lote: "Cant: 22 Ven: 21-01-27" },
+
+            // Remito 0001-00059482
+            { id: 32, remito: "0001-00059482", fecha: "21/09/2026", producto: "CAMPARI X 700CC X 6U - APERITIVOS", cantidad: 30, precio: 56500.00, lote: "Cant: 30 Ven: 31-12-50" },
+            { id: 33, remito: "0001-00059482", fecha: "21/09/2026", producto: "FERNET 1882 X 750CC X 6 - FERNET 1882", cantidad: 40, precio: 40000.00, lote: "Cant: 40 Ven: 31-12-50" },
+            { id: 34, remito: "0001-00059482", fecha: "21/09/2026", producto: "FERNET BRANCA X 450CC X 12U - VERMUT", cantidad: 20, precio: 129000.00, lote: "Cant: 20 Ven: 12-09-30" },
+            { id: 35, remito: "0001-00059482", fecha: "21/09/2026", producto: "FERNET BRANCA X 750CC X 6U - VERMUT", cantidad: 30, precio: 92000.00, lote: "Cant: 30 Ven: 31-12-50" },
+            { id: 36, remito: "0001-00059482", fecha: "21/09/2026", producto: "LEVITON MANZANA X 2000CC X 6U - VILLA DEL SUR", cantidad: 20, precio: 9900.00, lote: "Cant: 20 Ven: 31-01-27" },
+            { id: 37, remito: "0001-00059482", fecha: "21/09/2026", producto: "LEVITON POMELO X 2000CC X 6U - VILLA DEL SUR", cantidad: 20, precio: 9900.00, lote: "Cant: 20 Ven: 10-01-27" },
+            { id: 38, remito: "0001-00059482", fecha: "21/09/2026", producto: "QUARA X 700CC X 6U - VINOS", cantidad: 30, precio: 12500.00, lote: "Cant: 30 Ven: 24-07-26" },
+            { id: 39, remito: "0001-00059482", fecha: "21/09/2026", producto: "SANTA FILOMENA X 1.25L X 6U - VINOS", cantidad: 20, precio: 15800.00, lote: "Cant: 20 Ven: 24-07-26" },
+            { id: 40, remito: "0001-00059482", fecha: "21/09/2026", producto: "UVITA BLANCO X 1L X 12U - VINOS", cantidad: 15, precio: 16200.00, lote: "Cant: 15 Ven: 31-12-50" },
+            { id: 41, remito: "0001-00059482", fecha: "21/09/2026", producto: "UVITA BLANCO DULCE X 1LT X 12U - VINOS", cantidad: 15, precio: 16200.00, lote: "Cant: 15 Ven: 31-12-50" }
+        ];
+
+        let products = JSON.parse(localStorage.getItem('limon_stock_data')) || [...initialProducts];
+
+        // Format currency ARS
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
+        }
+
+        // Save State
+        function saveState() {
+            localStorage.setItem('limon_stock_data', JSON.stringify(products));
+            renderTable();
+            updateKPIs();
+        }
+
+        // Render Table Data
+        function renderTable() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const tbody = document.getElementById('stock-table-body');
+            tbody.innerHTML = '';
+
+            const filtered = products.filter(p => 
+                p.producto.toLowerCase().includes(query) || 
+                p.remito.toLowerCase().includes(query) ||
+                p.id.toString() === query
+            );
+
+            filtered.forEach(p => {
+                const subtotal = p.cantidad * p.precio;
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50/50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3 text-center font-bold text-gray-500">${p.id}</td>
+                    <td class="p-3 font-mono text-xs text-gray-600">${p.remito}</td>
+                    <td class="p-3 text-gray-600">${p.fecha}</td>
+                    <td class="p-3 font-semibold text-gray-800">${p.producto}</td>
+                    <td class="p-3 text-right font-bold ${p.cantidad < 15 ? 'text-red-600' : 'text-slate-800'}">${p.cantidad}</td>
+                    <td class="p-3 text-right text-gray-600">${formatMoney(p.precio)}</td>
+                    <td class="p-3 text-right font-bold text-green-700">${formatMoney(subtotal)}</td>
+                    <td class="p-3 text-xs text-gray-500">${p.lote || '-'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-700 p-1" title="Eliminar">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Update KPIs
+        function updateKPIs() {
+            const totalBultos = products.reduce((acc, p) => acc + p.cantidad, 0);
+            const totalValor = products.reduce((acc, p) => acc + (p.cantidad * p.precio), 0);
+            const remitosSet = new Set(products.map(p => p.remito));
+
+            document.getElementById('kpi-total-bultos').innerText = totalBultos.toLocaleString('es-AR');
+            document.getElementById('kpi-valor-stock').innerText = formatMoney(totalValor);
+            document.getElementById('kpi-total-items').innerText = products.length;
+            document.getElementById('kpi-total-remitos').innerText = remitosSet.size;
+        }
+
+        // Switch View Tabs
+        function switchTab(tab) {
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-bot').classList.add('hidden');
+            document.getElementById('view-cloud').classList.add('hidden');
+
+            document.getElementById('tab-dashboard').classList.remove('active-tab');
+            document.getElementById('tab-bot').classList.remove('active-tab');
+            document.getElementById('tab-cloud').classList.remove('active-tab');
+
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('active-tab');
+        }
+
+        // Modal Controls
+        function toggleModal(show) {
+            document.getElementById('modal-product').classList.toggle('hidden', !show);
+        }
+
+        // Add Product Form Handler
+        function handleProductSubmit(e) {
+            e.preventDefault();
+            const newProduct = {
+                id: products.length ? Math.max(...products.map(p => p.id)) + 1 : 1,
+                remito: document.getElementById('form-remito').value,
+                fecha: document.getElementById('form-fecha').value,
+                producto: document.getElementById('form-producto').value,
+                cantidad: parseInt(document.getElementById('form-cantidad').value),
+                precio: parseFloat(document.getElementById('form-precio').value),
+                lote: document.getElementById('form-lote').value || ''
+            };
+
+            products.push(newProduct);
+            saveState();
+            toggleModal(false);
+            e.target.reset();
+        }
+
+        // Delete Product
+        function deleteProduct(id) {
+            if (confirm('¿Seguro que querés eliminar este registro?')) {
+                products = products.filter(p => p.id !== id);
+                saveState();
+            }
+        }
+
+        // Bot Command Parser
+        function handleBotSubmit(e) {
+            e.preventDefault();
+            const inputEl = document.getElementById('bot-input');
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            addChatMessage(text, 'user');
+            inputEl.value = '';
+
+            setTimeout(() => {
+                const parts = text.split(' ');
+                const command = parts[0].toUpperCase();
+
+                if (command === 'STOCK') {
+                    const query = parts.slice(1).join(' ').toLowerCase();
+                    const matches = products.filter(p => p.producto.toLowerCase().includes(query) || p.id.toString() === query);
+                    if (matches.length === 0) {
+                        addChatMessage(`❌ No se encontraron productos para "${query}".`, 'bot');
+                    } else {
+                        let response = `📦 <b>Stock encontrado (${matches.length}):</b><br>`;
+                        matches.slice(0, 5).forEach(m => {
+                            response += `• [ID:${m.id}] ${m.producto}: <b>${m.cantidad} bultos</b><br>`;
+                        });
+                        if (matches.length > 5) response += `<i>...y ${matches.length - 5} más.</i>`;
+                        addChatMessage(response, 'bot');
+                    }
+                } else if (command === 'SUMAR' || command === 'RESTAR') {
+                    const id = parseInt(parts[1]);
+                    const qty = parseInt(parts[2]);
+
+                    if (isNaN(id) || isNaN(qty)) {
+                        addChatMessage(`⚠️ Formato incorrecto. Usá: <b>${command} [ID] [CANTIDAD]</b>`, 'bot');
+                        return;
+                    }
+
+                    const product = products.find(p => p.id === id);
+                    if (!product) {
+                        addChatMessage(`❌ No existe ningún producto con el ID ${id}.`, 'bot');
+                        return;
+                    }
+
+                    if (command === 'SUMAR') {
+                        product.cantidad += qty;
+                        saveState();
+                        addChatMessage(`✅ Se sumaron <b>${qty} bultos</b> a <i>${product.producto}</i>.<br>Nuevo Stock: <b>${product.cantidad} bultos</b>.`, 'bot');
+                    } else {
+                        if (product.cantidad < qty) {
+                            addChatMessage(`⚠️ Stock insuficiente. Solo quedan <b>${product.cantidad} bultos</b> de <i>${product.producto}</i>.`, 'bot');
+                        } else {
+                            product.cantidad -= qty;
+                            saveState();
+                            addChatMessage(`📉 Se descontaron <b>${qty} bultos</b> de <i>${product.producto}</i>.<br>Nuevo Stock: <b>${product.cantidad} bultos</b>.`, 'bot');
+                        }
+                    }
+                } else {
+                    addChatMessage(`❓ Comando no reconocido. Probá con <b>STOCK [nombre]</b>, <b>SUMAR [id] [cant]</b> o <b>RESTAR [id] [cant]</b>.`, 'bot');
+                }
+            }, 300);
+        }
+
+        // Add Message to Chat Box
+        function addChatMessage(msg, sender) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = sender === 'user' 
+                ? "bg-blue-600 text-white p-3 rounded-lg max-w-xs ml-auto text-right"
+                : "bg-slate-800 text-gray-200 p-3 rounded-lg max-w-md";
+            div.innerHTML = msg;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearChat() {
+            document.getElementById('chat-messages').innerHTML = '';
+        }
+
+        // Export Data to CSV
+        function exportToCSV() {
+            let csv = 'ID,Remito,Fecha,Producto,Cantidad,PrecioUnitario,Subtotal,LoteVencimiento\n';
+            products.forEach(p => {
+                const subtotal = p.cantidad * p.precio;
+                csv += `"${p.id}","${p.remito}","${p.fecha}","${p.producto}",${p.cantidad},${p.precio},${subtotal},"${p.lote}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `Stock_Mayorista_LIMON_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Reset Data
+        function resetData() {
+            if (confirm('¿Restablecer los 41 productos originales? Se perderán los cambios locales.')) {
+                products = [...initialProducts];
+                saveState();
+            }
+        }
+
+        // Initial Setup
+        window.onload = function() {
+            renderTable();
+            updateKPIs();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
