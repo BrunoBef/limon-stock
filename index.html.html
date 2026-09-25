@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Stock - Mayorista LIMON</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; padding-bottom: 40px; }
+        header { background-color: #1e293b; border-bottom: 1px solid #eab308; padding: 15px; position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo h1 { font-size: 1.2rem; color: #facc15; }
+        .logo p { font-size: 0.75rem; color: #94a3b8; }
+        .btn-bot { background-color: #eab308; color: #0f172a; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+        main { max-width: 950px; margin: 20px auto; padding: 0 15px; }
+        .grid-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .card { background-color: #1e293b; padding: 12px; border-radius: 12px; border: 1px solid #334155; }
+        .card p { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: bold; }
+        .card .num { font-size: 1.5rem; font-weight: 900; margin-top: 4px; }
+        .num-total { color: #facc15; }
+        .num-units { color: #34d399; }
+        .num-out { color: #f43f5e; }
+        .num-low { color: #fbbf24; }
+        .drawer { background-color: #1e293b; border: 1px solid #facc15; border-radius: 12px; padding: 15px; margin-bottom: 20px; display: none; }
+        .drawer.active { display: block; }
+        .drawer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+        .chat-box { height: 150px; overflow-y: auto; background-color: #020617; padding: 10px; border-radius: 8px; margin: 10px 0; font-family: monospace; font-size: 0.8rem; }
+        .chat-input { display: flex; gap: 8px; }
+        .chat-input input { flex: 1; background-color: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; }
+        .chat-input button { background-color: #eab308; color: #0f172a; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; }
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 15px; }
+        .search-box { flex: 1; min-width: 180px; background-color: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; }
+        .filter-select { background-color: #1e293b; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; }
+        .btn-add { background-color: #0284c7; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-export { background-color: #059669; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .table-container { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        th { background-color: #0f172a; color: #94a3b8; padding: 10px; text-transform: uppercase; font-size: 0.7rem; border-bottom: 1px solid #334155; }
+        td { padding: 12px 10px; border-bottom: 1px solid #334155; }
+        .badge { padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .badge-ok { background-color: rgba(52, 211, 153, 0.2); color: #34d399; }
+        .badge-low { background-color: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .badge-out { background-color: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+        .btn-action { width: 28px; height: 28px; border-radius: 6px; border: none; font-weight: bold; font-size: 1.1rem; cursor: pointer; color: white; }
+        .btn-plus { background-color: #059669; }
+        .btn-minus { background-color: #e11d48; }
+        .btn-date { background-color: #334155; color: #facc15; border: none; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; margin-top: 4px; }
+        .actions-cell { display: flex; gap: 6px; justify-content: center; }
+        .venc-tag { font-size: 0.75rem; color: #fbbf24; font-weight: bold; }
+
+        /* Modal Formulario */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 100; padding: 15px; }
+        .modal.active { display: flex; }
+        .modal-content { background: #1e293b; border: 1px solid #facc15; border-radius: 16px; padding: 20px; width: 100%; max-width: 450px; }
+        .modal-content h3 { color: #facc15; margin-bottom: 12px; font-size: 1.1rem; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; }
+        .modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px; }
+        .btn-cancel { background: #475569; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-save { background: #eab308; color: #0f172a; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span style="font-size: 1.8rem;">🍋</span>
+            <div>
+                <h1>Control de Stock Secos</h1>
+                <p>Mayorista LIMON • Almacén y Bebidas</p>
+            </div>
+        </div>
+        <button onclick="toggleBot()" class="btn-bot">💬 Bot Secos</button>
+    </header>
+
+    <main>
+        <div class="grid-metrics">
+            <div class="card">
+                <p>Total Productos</p>
+                <div id="total-prod" class="num num-total">0</div>
+            </div>
+            <div class="card">
+                <p>Total Bultos</p>
+                <div id="total-units" class="num num-units">0</div>
+            </div>
+            <div class="card">
+                <p>Agotados (0)</p>
+                <div id="total-out" class="num num-out">0</div>
+            </div>
+            <div class="card">
+                <p>Bajo Stock</p>
+                <div id="total-low" class="num num-low">0</div>
+            </div>
+        </div>
+
+        <div id="bot-drawer" class="drawer">
+            <div class="drawer-header">
+                <h3 style="color: #facc15;">🤖 Bot Comandos Frecuentes</h3>
+                <button onclick="toggleBot()" style="background:none; border:none; color:#94a3b8; cursor:pointer;">✖</button>
+            </div>
+            <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 8px;">
+                • <b>SUMAR ID CANTIDAD</b> (Ej: <span style="color:#34d399">SUMAR CERV361 10</span>)<br>
+                • <b>RESTAR ID CANTIDAD</b> (Ej: <span style="color:#f43f5e">RESTAR COCA225 2</span>)<br>
+                • <b>STOCK PALABRA</b> (Ej: <span style="color:#fbbf24">STOCK HEINEKEN</span>)
+            </div>
+            <div id="chat-box" class="chat-box">
+                <div style="color: #facc15;">🤖 Bot: Hola Bruno, ¿qué movimiento registramos en el almacén?</div>
+            </div>
+            <div class="chat-input">
+                <input id="bot-input" type="text" placeholder="Escribí un comando...">
+                <button onclick="sendBotMsg()">Enviar</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input id="search-input" oninput="renderTable()" type="text" placeholder="🔍 Buscar producto o ID..." class="search-box">
+            <select id="cat-filter" onchange="renderTable()" class="filter-select">
+                <option value="ALL">Todas las Categorías</option>
+                <option value="Cervezas">Cervezas</option>
+                <option value="Gaseosas y Bebidas">Gaseosas y Bebidas</option>
+                <option value="Vinos y Espirituosas">Vinos y Espirituosas</option>
+                <option value="Almacén General">Almacén General</option>
+            </select>
+            <button onclick="openModal()" class="btn-add">➕ Agregar Producto</button>
+            <button onclick="exportExcel()" class="btn-export">📗 Exportar a Excel</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID / Producto</th>
+                        <th>Categoría</th>
+                        <th>Vencimiento</th>
+                        <th style="text-align: center;">Bultos</th>
+                        <th style="text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-table"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal Formulario para Nuevo Producto -->
+    <div id="add-modal" class="modal">
+        <div class="modal-content">
+            <h3>➕ Nuevo Producto - Almacén / Secos</h3>
+            <div class="form-group">
+                <label>ID / CÓDIGO (Ej: HEINEKEN24):</label>
+                <input id="new-id" type="text" placeholder="Ingrese ID único">
+            </div>
+            <div class="form-group">
+                <label>NOMBRE DEL PRODUCTO:</label>
+                <input id="new-name" type="text" placeholder="Ej: HEINEKEN PORRON X 24U">
+            </div>
+            <div class="form-group">
+                <label>CATEGORÍA:</label>
+                <select id="new-cat">
+                    <option value="Cervezas">Cervezas</option>
+                    <option value="Gaseosas y Bebidas">Gaseosas y Bebidas</option>
+                    <option value="Vinos y Espirituosas">Vinos y Espirituosas</option>
+                    <option value="Almacén General">Almacén General</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex:1;">
+                    <label>BULTOS INICIALES:</label>
+                    <input id="new-stock" type="number" value="0" min="0">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>MÍNIMO RECOMENDADO:</label>
+                    <input id="new-min" type="number" value="5" min="1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>FECHA VENCIMIENTO (Opcional):</label>
+                <input id="new-venc" type="text" placeholder="Ej: 25/12/26">
+            </div>
+            <div class="modal-btns">
+                <button onclick="closeModal()" class="btn-cancel">Cancelar</button>
+                <button onclick="saveNewProduct()" class="btn-save">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const INITIAL_STOCK = [
+            {"id": "AMSTEL473", "nombre": "AMSTEL LATA X 473CC X 24U", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "01/02/27"},
+            {"id": "ANDESIPA", "nombre": "ANDES IPA X 473CC X 24U", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "18/02/27"},
+            {"id": "ANDESRUB", "nombre": "ANDES RUBIA X 473CC X 24U", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "10/10/26"},
+            {"id": "BRAHMA710", "nombre": "BRAHMA LATON X 710 X 16U", "categoria": "Cervezas", "stock": 48, "min": 5, "venc": "21/03/27"},
+            {"id": "CAJONCOCA1L", "nombre": "CAJON COCA COLA X 1L X 12U RETORNABLE", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "01/12/26"},
+            {"id": "COCA500ZERO", "nombre": "COCA ZERO X 500CC X 12U", "categoria": "Gaseosas y Bebidas", "stock": 42, "min": 5, "venc": "09/12/26"},
+            {"id": "CUNNPOMELO", "nombre": "CUNNINGTON POMELO X 2250CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "10/02/27"},
+            {"id": "FANTA225", "nombre": "FANTA X 2.25L X 8U", "categoria": "Gaseosas y Bebidas", "stock": 15, "min": 5, "venc": "10/10/26"},
+            {"id": "IGUANA1L", "nombre": "IGUANA CAJON X 12U RETORNABLE", "categoria": "Cervezas", "stock": 10, "min": 5, "venc": "07/01/27"},
+            {"id": "ISENBECK473", "nombre": "ISENBECK LATA X 473CC X 24U", "categoria": "Cervezas", "stock": 40, "min": 5, "venc": "13/05/27"},
+            {"id": "LATACOCA354", "nombre": "LATA COCA X 354CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 445, "min": 10, "venc": "25/02/27"},
+            {"id": "LATASPRITE354", "nombre": "LATA SPRITE X 354CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 45, "min": 5, "venc": "14/02/27"},
+            {"id": "LATONHEINEKEN", "nombre": "LATON HEINEKEN X 710CC X 24U", "categoria": "Cervezas", "stock": 24, "min": 5, "venc": "16/05/27"},
+            {"id": "LATONSCHNEIDER", "nombre": "LATON SCHNEIDER X 710CC X 24U", "categoria": "Cervezas", "stock": 56, "min": 5, "venc": "19/05/27"},
+            {"id": "MILLERCAJON", "nombre": "MILLER CAJON X 12U RETORNABLE", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "24/01/27"},
+            {"id": "MILLERLATA", "nombre": "MILLER LATA X 473CC X 24U", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "19/01/27"},
+            {"id": "MILLERLATON", "nombre": "MILLER LATON X 710CC X 24U", "categoria": "Cervezas", "stock": 16, "min": 5, "venc": "30/04/27"},
+            {"id": "MONSTMANGO", "nombre": "MONSTER MANGO LOCO X 500CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 90, "min": 5, "venc": "14/08/28"},
+            {"id": "MONSTNEGRO", "nombre": "MONSTER NEGRO X 500CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 90, "min": 5, "venc": "13/07/28"},
+            {"id": "MONSTDOCTOR", "nombre": "MONSTER THE DOCTOR X 473CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "24/02/28"},
+            {"id": "PEPSI2L", "nombre": "PEPSI X 2L X 8U", "categoria": "Gaseosas y Bebidas", "stock": 60, "min": 5, "venc": "04/11/26"},
+            {"id": "POWERADEROJO", "nombre": "POWERADE ROJO X 995CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 30, "min": 5, "venc": "25/10/26"},
+            {"id": "QUILMESCAJON", "nombre": "QUILMES CAJON X 12U RETORNABLE", "categoria": "Cervezas", "stock": 10, "min": 5, "venc": "14/03/27"},
+            {"id": "SEVEN500", "nombre": "SEVEN X 500CC X 12U", "categoria": "Gaseosas y Bebidas", "stock": 24, "min": 5, "venc": "14/10/26"},
+            {"id": "SEVEN354", "nombre": "SEVEN UP X 354CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 80, "min": 5, "venc": "03/01/27"},
+            {"id": "SPRITE500", "nombre": "SPRITE X 500CC X 12U", "categoria": "Gaseosas y Bebidas", "stock": 42, "min": 5, "venc": "06/12/26"},
+            {"id": "VILLAVICENCIO", "nombre": "VILLAVICENCIO CON GAS X 500CC X 12U", "categoria": "Gaseosas y Bebidas", "stock": 22, "min": 5, "venc": "21/01/27"},
+            {"id": "CAMPARI700", "nombre": "CAMPARI X 700CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 30, "min": 5, "venc": ""},
+            {"id": "FERNET1882", "nombre": "FERNET 1882 X 750CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 40, "min": 5, "venc": ""},
+            {"id": "FERNET450", "nombre": "FERNET BRANCA X 450CC X 12U", "categoria": "Vinos y Espirituosas", "stock": 20, "min": 5, "venc": "12/09/30"},
+            {"id": "LEVITONMANZ", "nombre": "LEVITON MANZANA X 2000CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "31/01/27"},
+            {"id": "LEVITONPOM", "nombre": "LEVITON POMELO X 2000CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "10/01/27"},
+            {"id": "QUARA700", "nombre": "QUARA X 700CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 30, "min": 5, "venc": "24/07/26"},
+            {"id": "SANTAFILO", "nombre": "SANTA FILOMENA X 1.25L X 6U", "categoria": "Vinos y Espirituosas", "stock": 20, "min": 5, "venc": "24/07/26"},
+            {"id": "CERV361", "nombre": "CERVEZA 361 X 1.5L X 6U", "categoria": "Cervezas", "stock": 50, "min": 10, "venc": "25/12/26"},
+            {"id": "FERNET750", "nombre": "FERNET BRANCA X 750CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 60, "min": 10, "venc": ""},
+            {"id": "HEINPORR", "nombre": "HEINEKEN PORRON X 24U - CCU", "categoria": "Cervezas", "stock": 84, "min": 15, "venc": ""},
+            {"id": "MONSTBLAN", "nombre": "MONSTER BLANCO X 500CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 90, "min": 15, "venc": "11/07/28"},
+            {"id": "MONSTPIPE", "nombre": "MONSTER PIPELINE PUNCH X 500CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 45, "min": 10, "venc": "18/07/28"},
+            {"id": "BAGGIONAR", "nombre": "BAGGIO NARANJA X 18U X 200CC", "categoria": "Gaseosas y Bebidas", "stock": 29, "min": 5, "venc": "24/07/26"},
+            {"id": "BUD710", "nombre": "BUDWEISER LATON X 710CC X 16U", "categoria": "Cervezas", "stock": 48, "min": 10, "venc": "05/12/26"},
+            {"id": "CABARCENO", "nombre": "CABARCENO PATERO X 1.25L X 6U", "categoria": "Vinos y Espirituosas", "stock": 20, "min": 5, "venc": ""},
+            {"id": "COCA175", "nombre": "COCA COLA X 1750 X 8U", "categoria": "Gaseosas y Bebidas", "stock": 75, "min": 15, "venc": "19/11/26"},
+            {"id": "COCA225", "nombre": "COCA COLA X 2.25L X 8U", "categoria": "Gaseosas y Bebidas", "stock": 300, "min": 30, "venc": "05/12/26"},
+            {"id": "COCAZERO225", "nombre": "COCA COLA ZERO X 2.25L X 8U", "categoria": "Gaseosas y Bebidas", "stock": 15, "min": 5, "venc": "21/11/26"},
+            {"id": "COCAZERO175", "nombre": "COCA ZERO X 1750CC X 8U", "categoria": "Gaseosas y Bebidas", "stock": 15, "min": 5, "venc": "21/11/26"},
+            {"id": "CUNNCOLA", "nombre": "CUNNINGTON COLA X 2250CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "15/02/27"},
+            {"id": "CUNNLIMA", "nombre": "CUNNINGTON LIMA X 2250CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 40, "min": 10, "venc": "24/02/27"},
+            {"id": "CUNNLIGHT", "nombre": "CUNNINGTON LIMA LIGHT X 2.25L X 6U", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "26/01/27"},
+            {"id": "CUNNTONI", "nombre": "CUNNINGTON TONICA X 2250CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 20, "min": 5, "venc": "09/02/27"},
+            {"id": "FERNET1L", "nombre": "FERNET BRANCA X 1LITRO X 6U", "categoria": "Vinos y Espirituosas", "stock": 10, "min": 5, "venc": ""},
+            {"id": "GROLSCH473", "nombre": "GROLSCH LATA X 473CC X 24U", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "15/03/27"},
+            {"id": "HEINLATA473", "nombre": "HEINECKEN LATA X 473CC X 24U", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "15/03/27"},
+            {"id": "HORMIGANEC", "nombre": "HORMIGA NEGRAS MALBEC X 750CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 30, "min": 5, "venc": ""},
+            {"id": "NICASIA", "nombre": "NICASIA X6U X 750CC - VINOS", "categoria": "Vinos y Espirituosas", "stock": 30, "min": 5, "venc": ""},
+            {"id": "OTROLOCO", "nombre": "OTRO LOCO MAS X 750CC X 6U - VINOS", "categoria": "Vinos y Espirituosas", "stock": 30, "min": 5, "venc": ""},
+            {"id": "PALERMO1L", "nombre": "PALERMO CAJON X 12U X 1L", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "02/02/27"},
+            {"id": "PEPSILATA", "nombre": "PEPSI LATA X 354CC X 6U", "categoria": "Gaseosas y Bebidas", "stock": 120, "min": 15, "venc": "22/12/26"},
+            {"id": "SEVEN2L", "nombre": "SEVEN X 2L X8U", "categoria": "Gaseosas y Bebidas", "stock": 60, "min": 10, "venc": "18/12/26"},
+            {"id": "SMIRNGREEN", "nombre": "SMIRNOFF GREEN APPLE X 700CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 5, "min": 2, "venc": ""},
+            {"id": "SMIRNRASP", "nombre": "SMIRNOFF RASBERRY X 700CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 10, "min": 3, "venc": ""},
+            {"id": "SPEED250", "nombre": "SPEED X 250CC X 24U", "categoria": "Gaseosas y Bebidas", "stock": 46, "min": 10, "venc": "22/07/27"},
+            {"id": "SPRITE2L", "nombre": "SPRITE X 2L X 9U RETORNABLE", "categoria": "Gaseosas y Bebidas", "stock": 10, "min": 5, "venc": "31/01/27"},
+            {"id": "STELLA1L", "nombre": "STELLA CAJON X 12U RETORNABLE", "categoria": "Cervezas", "stock": 20, "min": 5, "venc": "19/04/27"},
+            {"id": "TROMPETERS", "nombre": "TRUMPETER MALBEC X 750CC X 6U", "categoria": "Vinos y Espirituosas", "stock": 24, "min": 5, "venc": ""},
+            {"id": "VILLASUR600", "nombre": "VILLA DEL SUR X 600CC X 12U", "categoria": "Gaseosas y Bebidas", "stock": 50, "min": 10, "venc": "05/06/27"},
+            {"id": "VILLAVICEN", "nombre": "VILLAVICENCIO SPORT X 750CC X 12U", "categoria": "Gaseosas y Bebidas", "stock": 22, "min": 5, "venc": "20/04/27"},
+            {"id": "VINAALVEAR", "nombre": "VIÑA DE ALVEAR X 1.25L X 6U", "categoria": "Vinos y Espirituosas", "stock": 20, "min": 5, "venc": ""},
+            {"id": "VINARIOJANA", "nombre": "VIÑA RIOJANA TINTO X 1L X 12U", "categoria": "Vinos y Espirituosas", "stock": 30, "min": 5, "venc": ""}
+        ];
+
+        let stockData = JSON.parse(localStorage.getItem('limon_secos_stock_v4')) || INITIAL_STOCK;
+
+        function saveData() {
+            localStorage.setItem('limon_secos_stock_v4', JSON.stringify(stockData));
+            updateMetrics();
+        }
+
+        function updateMetrics() {
+            document.getElementById('total-prod').innerText = stockData.length;
+            document.getElementById('total-units').innerText = stockData.reduce((acc, p) => acc + p.stock, 0);
+            document.getElementById('total-out').innerText = stockData.filter(p => p.stock === 0).length;
+            document.getElementById('total-low').innerText = stockData.filter(p => p.stock > 0 && p.stock <= p.min).length;
+        }
+
+        function renderTable() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const cat = document.getElementById('cat-filter').value;
+            const tbody = document.getElementById('inventory-table');
+            tbody.innerHTML = '';
+
+            const filtered = stockData.filter(p => {
+                const matchSearch = p.nombre.toLowerCase().includes(search) || p.id.toLowerCase().includes(search);
+                const matchCat = cat === 'ALL' || p.categoria === cat;
+                return matchSearch && matchCat;
+            });
+
+            filtered.forEach(p => {
+                let badge = '<span class="badge badge-ok">OK</span>';
+                if(p.stock === 0) {
+                    badge = '<span class="badge badge-out">AGOTADO</span>';
+                } else if(p.stock <= p.min) {
+                    badge = '<span class="badge badge-low">BAJO</span>';
+                }
+
+                const vencDisplay = (p.venc && p.venc !== "31/12/50") ? `<span class="venc-tag">📅 ${p.venc}</span>` : `<span style="color:#64748b; font-size:0.75rem;">Sin fecha</span>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight:bold; color:#f8fafc;">${p.nombre}</div>
+                        <div style="font-size:0.75rem; color:#facc15; font-family:monospace;">ID: ${p.id}</div>
+                    </td>
+                    <td style="font-size:0.75rem; color:#94a3b8;">${p.categoria}</td>
+                    <td>
+                        ${vencDisplay}<br>
+                        <button onclick="editVenc('${p.id}')" class="btn-date">✎ Editar</button>
+                    </td>
+                    <td style="text-align:center;">
+                        <span style="font-size:1.1rem; font-weight:bold; ${p.stock === 0 ? 'color:#f43f5e;' : 'color:#f8fafc;'}">${p.stock}</span>
+                        <div style="margin-top:2px;">${badge}</div>
+                    </td>
+                    <td style="text-align:center;">
+                        <div class="actions-cell">
+                            <button onclick="changeStock('${p.id}', -1)" class="btn-action btn-minus">-</button>
+                            <button onclick="changeStock('${p.id}', 1)" class="btn-action btn-plus">+</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateMetrics();
+        }
+
+        function openModal() {
+            document.getElementById('add-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('add-modal').classList.remove('active');
+            document.getElementById('new-id').value = '';
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-stock').value = '0';
+            document.getElementById('new-min').value = '5';
+            document.getElementById('new-venc').value = '';
+        }
+
+        function saveNewProduct() {
+            const id = document.getElementById('new-id').value.trim().toUpperCase();
+            const nombre = document.getElementById('new-name').value.trim().toUpperCase();
+            const categoria = document.getElementById('new-cat').value;
+            const stock = parseInt(document.getElementById('new-stock').value) || 0;
+            const min = parseInt(document.getElementById('new-min').value) || 5;
+            const venc = document.getElementById('new-venc').value.trim();
+
+            if(!id || !nombre) {
+                alert('Por favor complete el ID y el Nombre del Producto.');
+                return;
+            }
+
+            if(stockData.some(p => p.id === id)) {
+                alert('El ID ingresado ya existe. Por favor use uno diferente.');
+                return;
+            }
+
+            stockData.push({ id, nombre, categoria, stock, min, venc });
+            saveData();
+            renderTable();
+            closeModal();
+        }
+
+        function editVenc(id) {
+            const prod = stockData.find(p => p.id === id);
+            if(prod) {
+                const newDate = prompt(`Ingresá la fecha de vencimiento para ${prod.nombre}:`, prod.venc || '');
+                if(newDate !== null) {
+                    prod.venc = newDate.trim();
+                    saveData();
+                    renderTable();
+                }
+            }
+        }
+
+        function changeStock(id, qty) {
+            const prod = stockData.find(p => p.id === id);
+            if(prod) {
+                prod.stock = Math.max(0, prod.stock + qty);
+                saveData();
+                renderTable();
+            }
+        }
+
+        function toggleBot() {
+            const drawer = document.getElementById('bot-drawer');
+            drawer.classList.toggle('active');
+        }
+
+        function sendBotMsg() {
+            const input = document.getElementById('bot-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            const chat = document.getElementById('chat-box');
+            chat.innerHTML += `<div style="color:#cbd5e1; text-align:right;">👤 ${text}</div>`;
+            input.value = '';
+
+            const parts = text.split(' ');
+            const action = parts[0].toUpperCase();
+            let response = "🤖 No entendí el comando. Usá SUMAR, RESTAR o STOCK.";
+
+            if(action === 'SUMAR' || action === 'RESTAR') {
+                const id = parts[1] ? parts[1].toUpperCase() : null;
+                const qty = parseInt(parts[2]);
+                const prod = stockData.find(p => p.id === id);
+
+                if(prod && !isNaN(qty)) {
+                    const diff = action === 'SUMAR' ? qty : -qty;
+                    prod.stock = Math.max(0, prod.stock + diff);
+                    saveData();
+                    renderTable();
+                    response = `🤖 ¡Listo! ${prod.nombre} ahora tiene ${prod.stock} bultos.`;
+                } else {
+                    response = `🤖 Error: Verificá el ID del producto y la cantidad.`;
+                }
+            } else if(action === 'STOCK') {
+                const query = parts.slice(1).join(' ').toLowerCase();
+                const matches = stockData.filter(p => p.nombre.toLowerCase().includes(query) || p.id.toLowerCase().includes(query));
+                if(matches.length > 0) {
+                    response = `🤖 Encontrados:<br>` + matches.map(m => `• ${m.nombre} (${m.id}): <b>${m.stock} bultos</b> ${m.venc ? '(Vence: '+m.venc+')' : ''}`).join('<br>');
+                } else {
+                    response = `🤖 No encontré productos con "${query}".`;
+                }
+            }
+
+            chat.innerHTML += `<div style="color:#facc15;">🤖 ${response}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function exportExcel() {
+            let tableHtml = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    th { background-color: #0f172a; color: #ffffff; font-weight: bold; text-align: left; padding: 8px; border: 1px solid #334155; }
+                    td { padding: 6px; border: 1px solid #cbd5e1; vertical-align: middle; }
+                    .ok { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; }
+                    .bajo { background-color: #fef3c7; color: #92400e; font-weight: bold; text-align: center; }
+                    .agotado { background-color: #ffe4e6; color: #9f1239; font-weight: bold; text-align: center; }
+                    .num { text-align: center; font-weight: bold; }
+                    .title { font-size: 16pt; font-weight: bold; color: #eab308; }
+                </style>
+            </head>
+            <body>
+                <div class="title">Autoservicio Mayorista LIMON - Almacén / Secos</div>
+                <p><b>Reporte Consolidado de Stock</b> - Fecha: ${new Date().toLocaleDateString('es-AR')}</p>
+                <br>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Vencimiento</th>
+                            <th>Bultos Actuales</th>
+                            <th>Mínimo Recomendado</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            stockData.forEach(p => {
+                let estadoClass = p.stock === 0 ? 'agotado' : (p.stock <= p.min ? 'bajo' : 'ok');
+                let estadoTexto = p.stock === 0 ? 'AGOTADO' : (p.stock <= p.min ? 'BAJO STOCK' : 'OK');
+                
+                tableHtml += `
+                    <tr>
+                        <td><b>${p.id}</b></td>
+                        <td>${p.nombre}</td>
+                        <td>${p.categoria}</td>
+                        <td style="text-align:center;">${(p.venc && p.venc !== "31/12/50") ? p.venc : '-'}</td>
+                        <td class="num">${p.stock}</td>
+                        <td class="num">${p.min}</td>
+                        <td class="${estadoClass}">${estadoTexto}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += `
+                    </tbody>
+                </table>
+            </body>
+            </html>
+            `;
+
+            const blob = new Blob(['\ufeff' + tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `Stock_Secos_Consolidado_${new Date().toISOString().slice(0,10)}.xls`);
+            a.click();
+        }
+
+        renderTable();
+    </script>
+</body>
+</html>
